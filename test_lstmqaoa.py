@@ -7,7 +7,7 @@ from meta_loss_function import *
 ms.context.set_context(mode=ms.context.PYNATIVE_MODE, device_target="CPU")
 
 
-n = 12
+n = 8
 p = 10
 G, k = random_graph_instance(n)
 draw_img(G)
@@ -21,7 +21,7 @@ model = LSTMQAOA(len(cir.params_name), hidden_dim=len(cir.params_name), n_layers
 
 seq_len = ms.Tensor([1], ms.int64)
 print(seq_len.shape)
-init_paras = ms.Tensor(np.random.randn(1, 1, len(cir.params_name))).astype(ms.float32)
+init_paras = ms.Tensor(np.random.randn(1, 1, len(cir.params_name))*1.57).astype(ms.float32)
 initial_energy, next_paras = model(init_paras, seq_len)
 print("Initial energy: %20.16f" % (initial_energy.asnumpy()))
 
@@ -66,8 +66,16 @@ target = ms.Tensor([0])
 net_with_loss = CustomWithLossCell(model, loss)
 train_net = CustomTrainOneStepCell(net_with_loss, optimizer)
 train_net.set_train()
-for i in range(5000):
+history = []
+for i in range(2000):
     lo, next_paras = train_net(init_paras, seq_len, target)
     init_paras = ms.Tensor(next_paras.asnumpy()).astype(ms.float32)
     if (i+1)%50==0:
-        print(f'iter{i+1:04d}: loss {lo}')
+        loss = lo.asnumpy()
+        print(f'iter{i+1:04d}: loss {loss}')
+        history.append(loss)
+
+
+import matplotlib.pyplot as plt
+plt.plot([50*(i+1) for i in range(len(history))], history, label='LSTM')
+plt.savefig('convergence_p=8.png')
